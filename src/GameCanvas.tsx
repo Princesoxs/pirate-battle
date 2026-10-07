@@ -8,6 +8,9 @@ function GameCanvas() {
     const app = new Application()
     let destroyed = false
 
+let keyDownHandler: ((event: KeyboardEvent) => void) | null = null
+let keyUpHandler: ((event: KeyboardEvent) => void) | null = null
+
     const startGame = async () => {
       await app.init({
         width: 960,
@@ -38,7 +41,9 @@ function GameCanvas() {
 const cannonBallTexture = await Assets.load(
   '/assets/png/default/ship_parts/cannon_ball.png'
 )
-
+const chaserTexture = await Assets.load(
+  '/assets/png/default/ships/ship_2.png'
+)
 if (destroyed) return
 
 const ship = new Sprite(shipTexture)
@@ -47,6 +52,13 @@ ship.anchor.set(0.5)
 ship.position.set(480, 270)
 
 app.stage.addChild(ship)
+
+const chaser = new Sprite(chaserTexture)
+
+chaser.anchor.set(0.5)
+chaser.position.set(150, 150)
+
+app.stage.addChild(chaser)
 
 let lastShotTime = 0
 const shootCooldown = 500
@@ -105,6 +117,9 @@ const keyUp = (event: KeyboardEvent) => {
   keys[event.key.toLowerCase()] = false
 }
 
+keyDownHandler = keyDown
+keyUpHandler = keyUp
+
 window.addEventListener('keydown', keyDown)
 window.addEventListener('keyup', keyUp)
 
@@ -124,7 +139,24 @@ app.ticker.add((ticker) => {
     ship.x -= Math.sin(ship.rotation) * speed
     ship.y += Math.cos(ship.rotation) * speed
   }
-  
+      const dx = ship.x - chaser.x
+    const dy = ship.y - chaser.y
+
+    const distance = Math.sqrt(dx * dx + dy * dy)
+    const chaserSpeed = 1.5 * ticker.deltaTime
+
+    if (distance > 0) {
+      chaser.rotation = Math.atan2(-dx, dy)
+
+      chaser.x += (dx / distance) * chaserSpeed
+      chaser.y += (dy / distance) * chaserSpeed
+
+      const collisionDistance = 55
+
+if (distance < collisionDistance) {
+  console.log('Chaser collided with player!')
+}
+    }
 })
 
     }
@@ -132,13 +164,21 @@ app.ticker.add((ticker) => {
     startGame()
 
     return () => {
-      destroyed = true
+  destroyed = true
 
-      if (app.renderer) {
-        app.destroy(true)
-      }
-    }
-  }, [])
+  if (keyDownHandler) {
+    window.removeEventListener('keydown', keyDownHandler)
+  }
+
+  if (keyUpHandler) {
+    window.removeEventListener('keyup', keyUpHandler)
+  }
+
+  if (app.renderer) {
+    app.destroy(true)
+  }
+}
+}, [])
 
   return <div ref={containerRef} />
 }
