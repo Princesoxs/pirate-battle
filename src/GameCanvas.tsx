@@ -30,8 +30,13 @@ function GameCanvas() {
         .fill(0x2495c4)
 
       app.stage.addChild(ocean)
+
       const shipTexture = await Assets.load(
   '/assets/png/default/ships/ship_1.png'
+)
+
+const cannonBallTexture = await Assets.load(
+  '/assets/png/default/ship_parts/cannon_ball.png'
 )
 
 if (destroyed) return
@@ -43,10 +48,57 @@ ship.position.set(480, 270)
 
 app.stage.addChild(ship)
 
+let lastShotTime = 0
+const shootCooldown = 500
+
+const shoot = () => {
+  const now = performance.now()
+
+if (now - lastShotTime < shootCooldown) {
+  return
+}
+
+lastShotTime = now
+  const cannonBall = new Sprite(cannonBallTexture)
+
+  cannonBall.anchor.set(0.5)
+  cannonBall.position.set(ship.x, ship.y)
+
+  const shotRotation = ship.rotation
+  const projectileSpeed = 7
+
+  app.stage.addChild(cannonBall)
+
+ const projectileTicker = (ticker: any) => {
+  cannonBall.x -=
+    Math.sin(shotRotation) * projectileSpeed * ticker.deltaTime
+
+  cannonBall.y +=
+    Math.cos(shotRotation) * projectileSpeed * ticker.deltaTime
+
+  const outsideArena =
+    cannonBall.x < 0 ||
+    cannonBall.x > 960 ||
+    cannonBall.y < 0 ||
+    cannonBall.y > 540
+
+  if (outsideArena) {
+    app.ticker.remove(projectileTicker)
+    cannonBall.destroy()
+  }
+}
+
+  app.ticker.add(projectileTicker)
+}
+
 const keys: Record<string, boolean> = {}
 
 const keyDown = (event: KeyboardEvent) => {
   keys[event.key.toLowerCase()] = true
+
+  if (event.code === 'Space') {
+    shoot()
+  }
 }
 
 const keyUp = (event: KeyboardEvent) => {
@@ -72,6 +124,7 @@ app.ticker.add((ticker) => {
     ship.x -= Math.sin(ship.rotation) * speed
     ship.y += Math.cos(ship.rotation) * speed
   }
+  
 })
 
     }
