@@ -1,8 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Application, Assets, Graphics, Sprite } from 'pixi.js'
 
 function GameCanvas() {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [health, setHealth] = useState(100)
+  const [scoreDisplay, setScoreDisplay] = useState(0)
 
   useEffect(() => {
     const app = new Application()
@@ -115,7 +117,7 @@ if (distanceToChaser < 40) {
     chaser.destroy()
 
     score += 1
-
+    setScoreDisplay(score)
     console.log(`Chaser destroyed! Score: ${score}`)
   }
 
@@ -196,6 +198,7 @@ if (distance > 0 && chaserAlive) {
 
 if (distance < collisionDistance && chaserAlive) {
   playerHealth -= chaserCollisionDamage
+  setHealth(playerHealth)
   chaserAlive = false
 
   console.log(`Player health: ${playerHealth}`)
@@ -226,7 +229,17 @@ if (distance < collisionDistance && chaserAlive) {
 }
 }, [])
 
-  return <div ref={containerRef} />
+  return (
+  <div>
+    <div>
+      <strong>Health: {health}</strong>
+      {' | '}
+      <strong>Score: {scoreDisplay}</strong>
+    </div>
+
+    <div ref={containerRef} />
+  </div>
+)
 }
 
 export default GameCanvas
