@@ -60,6 +60,13 @@ chaser.position.set(150, 150)
 
 app.stage.addChild(chaser)
 
+let playerHealth = 100
+let score = 0
+let chaserHealth = 100
+let chaserAlive = true
+
+const chaserCollisionDamage = 25
+
 let lastShotTime = 0
 const shootCooldown = 500
 
@@ -87,6 +94,34 @@ lastShotTime = now
 
   cannonBall.y +=
     Math.cos(shotRotation) * projectileSpeed * ticker.deltaTime
+
+if (chaserAlive) {
+  const dxToChaser = cannonBall.x - chaser.x
+  const dyToChaser = cannonBall.y - chaser.y
+  const distanceToChaser = Math.sqrt(
+    dxToChaser * dxToChaser + dyToChaser * dyToChaser
+  )
+
+if (distanceToChaser < 40) {
+  chaserHealth -= 25
+
+  console.log(`Chaser health: ${chaserHealth}`)
+
+  app.ticker.remove(projectileTicker)
+  cannonBall.destroy()
+
+  if (chaserHealth <= 0) {
+    chaserAlive = false
+    chaser.destroy()
+
+    score += 1
+
+    console.log(`Chaser destroyed! Score: ${score}`)
+  }
+
+  return
+}
+}
 
   const outsideArena =
     cannonBall.x < 0 ||
@@ -139,13 +174,19 @@ app.ticker.add((ticker) => {
     ship.x -= Math.sin(ship.rotation) * speed
     ship.y += Math.cos(ship.rotation) * speed
   }
-      const dx = ship.x - chaser.x
+
+  if (!chaserAlive) {
+  return
+}
+
+    const dx = ship.x - chaser.x
     const dy = ship.y - chaser.y
 
     const distance = Math.sqrt(dx * dx + dy * dy)
+
     const chaserSpeed = 1.5 * ticker.deltaTime
 
-    if (distance > 0) {
+if (distance > 0 && chaserAlive) {
       chaser.rotation = Math.atan2(-dx, dy)
 
       chaser.x += (dx / distance) * chaserSpeed
@@ -153,8 +194,13 @@ app.ticker.add((ticker) => {
 
       const collisionDistance = 55
 
-if (distance < collisionDistance) {
-  console.log('Chaser collided with player!')
+if (distance < collisionDistance && chaserAlive) {
+  playerHealth -= chaserCollisionDamage
+  chaserAlive = false
+
+  console.log(`Player health: ${playerHealth}`)
+
+  chaser.destroy()
 }
     }
 })
