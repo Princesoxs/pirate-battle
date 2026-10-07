@@ -5,10 +5,14 @@ function GameCanvas() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [health, setHealth] = useState(100)
   const [scoreDisplay, setScoreDisplay] = useState(0)
+  const [timeLeft, setTimeLeft] = useState(60)
 
   useEffect(() => {
     const app = new Application()
     let destroyed = false
+    let gameOver = false
+    let remainingTime = 60
+    let lastTimerUpdate = performance.now()
 
 let keyDownHandler: ((event: KeyboardEvent) => void) | null = null
 let keyUpHandler: ((event: KeyboardEvent) => void) | null = null
@@ -55,17 +59,29 @@ ship.position.set(480, 270)
 
 app.stage.addChild(ship)
 
-const chaser = new Sprite(chaserTexture)
-
-chaser.anchor.set(0.5)
-chaser.position.set(150, 150)
-
-app.stage.addChild(chaser)
-
 let playerHealth = 100
 let score = 0
+
 let chaserHealth = 100
-let chaserAlive = true
+let chaserAlive = false
+
+const chaser = new Sprite(chaserTexture)
+chaser.anchor.set(0.5)
+
+const spawnChaser = () => {
+  chaserHealth = 100
+  chaserAlive = true
+
+  chaser.position.set(150, 150)
+
+  if (!chaser.parent) {
+    app.stage.addChild(chaser)
+  }
+
+  console.log('Chaser spawned!')
+}
+
+spawnChaser()
 
 const chaserCollisionDamage = 25
 
@@ -73,6 +89,9 @@ let lastShotTime = 0
 const shootCooldown = 500
 
 const shoot = () => {
+  if (gameOver) {
+  return
+}
   const now = performance.now()
 
 if (now - lastShotTime < shootCooldown) {
@@ -114,11 +133,17 @@ if (distanceToChaser < 40) {
 
   if (chaserHealth <= 0) {
     chaserAlive = false
-    chaser.destroy()
+    app.stage.removeChild(chaser)
 
     score += 1
     setScoreDisplay(score)
     console.log(`Chaser destroyed! Score: ${score}`)
+
+    setTimeout(() => {
+  if (!gameOver) {
+    spawnChaser()
+  }
+}, 2000)
   }
 
   return
@@ -161,6 +186,26 @@ window.addEventListener('keydown', keyDown)
 window.addEventListener('keyup', keyUp)
 
 app.ticker.add((ticker) => {
+  if (gameOver) {
+  return
+}
+
+const now = performance.now()
+
+if (now - lastTimerUpdate >= 1000) {
+  remainingTime -= 1
+  setTimeLeft(remainingTime)
+  lastTimerUpdate = now
+
+  if (remainingTime <= 0) {
+    remainingTime = 0
+    setTimeLeft(0)
+    gameOver = true
+
+    console.log(`Game over! Final score: ${score}`)
+    return
+  }
+}
   const speed = 3 * ticker.deltaTime
   const rotationSpeed = 0.05 * ticker.deltaTime
 
@@ -203,7 +248,23 @@ if (distance < collisionDistance && chaserAlive) {
 
   console.log(`Player health: ${playerHealth}`)
 
-  chaser.destroy()
+  if (playerHealth <= 0) {
+    playerHealth = 0
+    setHealth(0)
+    gameOver = true
+
+    console.log(`Game over! Player destroyed. Final score: ${score}`)
+  }
+
+  app.stage.removeChild(chaser)
+
+  if (!gameOver) {
+  setTimeout(() => {
+    if (!gameOver) {
+      spawnChaser()
+    }
+  }, 2000)
+}
 }
     }
 })
@@ -235,6 +296,8 @@ if (distance < collisionDistance && chaserAlive) {
       <strong>Health: {health}</strong>
       {' | '}
       <strong>Score: {scoreDisplay}</strong>
+      {' | '}
+      <strong>Time: {timeLeft}</strong>
     </div>
 
     <div ref={containerRef} />
