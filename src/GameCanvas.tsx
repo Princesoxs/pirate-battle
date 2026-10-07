@@ -50,6 +50,11 @@ const cannonBallTexture = await Assets.load(
 const chaserTexture = await Assets.load(
   '/assets/png/default/ships/ship_2.png'
 )
+
+const shooterTexture = await Assets.load(
+  '/assets/png/default/ships/ship_3.png'
+)
+
 if (destroyed) return
 
 const ship = new Sprite(shipTexture)
@@ -58,6 +63,13 @@ ship.anchor.set(0.5)
 ship.position.set(480, 270)
 
 app.stage.addChild(ship)
+
+const shooter = new Sprite(shooterTexture)
+
+shooter.anchor.set(0.5)
+shooter.position.set(800, 150)
+
+app.stage.addChild(shooter)
 
 let playerHealth = 100
 let score = 0
@@ -87,6 +99,9 @@ const chaserCollisionDamage = 25
 
 let lastShotTime = 0
 const shootCooldown = 500
+
+let lastShooterShotTime = 0
+const shooterShootCooldown = 1500
 
 const shoot = () => {
   if (gameOver) {
@@ -267,6 +282,93 @@ if (distance < collisionDistance && chaserAlive) {
 }
 }
     }
+
+const shooterDx = ship.x - shooter.x
+const shooterDy = ship.y - shooter.y
+
+const shooterDistance = Math.sqrt(
+  shooterDx * shooterDx + shooterDy * shooterDy
+)
+
+const shooterSpeed = 1 * ticker.deltaTime
+const shooterAttackRange = 250
+
+if (shooterDistance > 0) {
+  shooter.rotation = Math.atan2(-shooterDx, shooterDy)
+
+  if (shooterDistance > shooterAttackRange) {
+    shooter.x += (shooterDx / shooterDistance) * shooterSpeed
+    shooter.y += (shooterDy / shooterDistance) * shooterSpeed
+  }
+  else {
+    const now = performance.now()
+
+    if (now - lastShooterShotTime >= shooterShootCooldown) {
+      lastShooterShotTime = now
+
+      const enemyCannonBall = new Sprite(cannonBallTexture)
+
+      enemyCannonBall.anchor.set(0.5)
+      enemyCannonBall.position.set(shooter.x, shooter.y)
+
+app.stage.addChild(enemyCannonBall)
+
+const enemyProjectileSpeed = 5
+
+const directionX = shooterDx / shooterDistance
+const directionY = shooterDy / shooterDistance
+
+const enemyProjectileTicker = (ticker: any) => {
+  enemyCannonBall.x += directionX * enemyProjectileSpeed * ticker.deltaTime
+  enemyCannonBall.y += directionY * enemyProjectileSpeed * ticker.deltaTime
+
+  const dxToPlayer = enemyCannonBall.x - ship.x
+const dyToPlayer = enemyCannonBall.y - ship.y
+
+const distanceToPlayer = Math.sqrt(
+  dxToPlayer * dxToPlayer + dyToPlayer * dyToPlayer
+)
+
+if (distanceToPlayer < 35) {
+  playerHealth -= 25
+
+  if (playerHealth < 0) {
+    playerHealth = 0
+  }
+
+  setHealth(playerHealth)
+
+  app.ticker.remove(enemyProjectileTicker)
+  enemyCannonBall.destroy()
+
+  console.log(`Shooter hit player! Health: ${playerHealth}`)
+
+  if (playerHealth <= 0) {
+    gameOver = true
+    console.log(`Game over! Player destroyed. Final score: ${score}`)
+  }
+
+  return
+}
+
+  const outsideArena =
+    enemyCannonBall.x < 0 ||
+    enemyCannonBall.x > 960 ||
+    enemyCannonBall.y < 0 ||
+    enemyCannonBall.y > 540
+
+  if (outsideArena) {
+    app.ticker.remove(enemyProjectileTicker)
+    enemyCannonBall.destroy()
+  }
+}
+
+app.ticker.add(enemyProjectileTicker)
+
+console.log('Shooter fired!')
+      }
+    }
+  }
 })
 
     }
